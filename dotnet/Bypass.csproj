@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<PackageOutputPath>nupkgs</PackageOutputPath>
+		<PackageId>Pixeval.$(AssemblyName)</PackageId>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
+		<None Include="../target/debug/bypass.dll">
+			<Pack>true</Pack>
+			<Link>%(Filename)%(Extension)</Link>
+			<PackagePath>runtimes/win-x64/native</PackagePath>
+			<Visible>false</Visible>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)' == 'Release'">
+		<None Include="../target/release/bypass.dll">
+			<Pack>true</Pack>
+			<Link>%(Filename)%(Extension)</Link>
+			<PackagePath>runtimes/win-x64/native</PackagePath>
+			<Visible>false</Visible>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MinVer" Version="5.0.0">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+	</ItemGroup>
+</Project>

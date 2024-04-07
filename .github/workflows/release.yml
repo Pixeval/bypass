@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags: [ "v*" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install .NET Sdk
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - uses: moonrepo/setup-rust@v1
+        with:
+          cache: true
+          cache-target: release
+          inherit-toolchain: true
+
+      - name: Build
+        run: cargo build -r
+
+      - name: Pack
+        run: dotnet pack ./dotnet/Bypass.csproj
+
+      - name: Push packages to nuget
+        run: |
+          Get-ChildItem ./dotnet/nupkgs -Filter *.nupkg | %{ dotnet nuget push $_.FullName -k ${{secrets.NUGET_API_KEY}} }
+        shell: pwsh
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Artifacts
+          path: "dotnet/nupkgs/*.nupkg"
