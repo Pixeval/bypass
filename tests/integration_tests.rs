@@ -31,7 +31,7 @@ async fn chrome_test1() {
         Some(r"C:\Program Files\Google\Chrome\Application"),
     )
     .expect("You should install chrome first.");
-    let mut chrome_process = Command::new(chrome_paths.next().unwrap())
+    let mut chrome_process = Command::new(chrome_paths.into_iter().next().unwrap())
         .arg("--no-proxy-server")
         .spawn()
         .expect("Failed to start Chrome.");
