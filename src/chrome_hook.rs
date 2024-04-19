@@ -58,7 +58,6 @@ unsafe extern "system" fn detour(
         lpprocessinformation,
     );
     let command_line = lpcommandline.to_string().unwrap();
-    log::info!("{}", command_line);
     if command_line.contains("--utility-sub-type=network.mojom.NetworkService") {
         let pid = lpprocessinformation.as_ref().unwrap().dwProcessId;
         let path = INJECTED_DLL_PATH.as_ref().unwrap();

@@ -5,7 +5,7 @@ use std::{
     env::current_exe,
     ffi::c_void,
     mem::{size_of, transmute},
-    ops::Sub,
+    ops::{Add, Sub},
     ptr::{null, null_mut},
     sync::Mutex,
 };
@@ -45,26 +45,24 @@ unsafe extern "C" fn detour(s: *mut c_void, name: PCSTR) -> i32 {
 }
 
 fn find_target() -> NativePointer {
-    let current = current_exe().unwrap();
-    let basename = current.file_stem().unwrap().to_str().unwrap();
-    log::info!("{}", basename);
-    let mut module_handle = 0isize;
-    while Module::find_export_by_name(None, "ChromeMain").unwrap().0 == null_mut::<c_void>() {
-        module_handle = Module::find_base_address(format!("{}.dll", basename).as_str()).0 as isize;
-    }
-    let module_info = MODULEINFO::default();
-    unsafe {
-        GetModuleInformation(
-            GetCurrentProcess(),
-            HMODULE(module_handle),
-            transmute(&module_info),
-            size_of::<MODULEINFO>() as u32,
-        )
-        .unwrap()
+    let chrome_main = loop {
+        let chrome_main = Module::find_export_by_name(None, "ChromeMain");
+        match chrome_main {
+            Some(address) => break address,
+            None => continue,
+        }
     };
+    let module = Module::enumerate_modules()
+        .into_iter()
+        .filter(|m| {
+            m.base_address <= chrome_main.0 as usize
+                && (chrome_main.0 as usize) < m.base_address.add(m.size)
+        })
+        .next()
+        .unwrap();
     let memory_range = MemoryRange::new(
-        NativePointer(module_info.lpBaseOfDll),
-        module_info.SizeOfImage as usize,
+        NativePointer(module.base_address as *mut c_void),
+        module.size,
     );
     let result = memory_range.scan(&MatchPattern::from_string(
         "C7 44 24 20 ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? 31 F6 B9 10 00 00 00 31 D2 41 B8 D5 00 00 00",

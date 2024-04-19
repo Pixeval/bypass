@@ -27,11 +27,11 @@ use std::{
 #[futures_test::test]
 async fn chrome_test1() {
     let chrome_paths = which::which_in_global(
-        "msedge.exe",
-        Some(r"C:\Program Files (x86)\Microsoft\Edge\Application"),
+        "chrome.exe",
+        Some(r"C:\Program Files\Google\Chrome\Application"),
     )
     .expect("You should install chrome first.");
-    let mut chrome_process = Command::new(chrome_paths.take(1).next().unwrap())
+    let mut chrome_process = Command::new(chrome_paths.next().unwrap())
         .arg("--no-proxy-server")
         .spawn()
         .expect("Failed to start Chrome.");
