@@ -18,7 +18,6 @@ impl Injection<'static> {
 pub fn inject(pid: u32, payload_path: impl AsRef<Path>) -> Result<Injection<'static>, InjectError> {
     let process = OwnedProcess::from_pid(pid).unwrap();
     let syringe = Box::new(Syringe::for_process(process));
-
     let syringe_ptr = Box::leak(syringe) as *mut Syringe;
     unsafe {
         syringe_ptr

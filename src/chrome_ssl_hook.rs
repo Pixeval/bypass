@@ -2,22 +2,14 @@ use frida_gum::{interceptor::Interceptor, Gum, MatchPattern, MemoryRange, Module
 use lazy_static::lazy_static;
 use std::{
     cell::UnsafeCell,
-    env::current_exe,
     ffi::c_void,
-    mem::{size_of, transmute},
+    mem::{transmute},
     ops::{Add, Sub},
-    ptr::{null, null_mut},
+    ptr::{null},
     sync::Mutex,
 };
 use windows::{
     core::PCSTR,
-    Win32::{
-        Foundation::HMODULE,
-        System::{
-            ProcessStatus::{GetModuleInformation, MODULEINFO},
-            Threading::GetCurrentProcess,
-        },
-    },
 };
 
 lazy_static! {
@@ -32,11 +24,7 @@ type TargetFunc = unsafe extern "C" fn(s: *mut c_void, name: PCSTR) -> i32;
 
 unsafe extern "C" fn detour(s: *mut c_void, name: PCSTR) -> i32 {
     let name1 = name.to_string().unwrap();
-    let result = if name1.eq_ignore_ascii_case("pixiv.net") {
-        ORIGINAL.lock().unwrap().get_mut().unwrap()(s, PCSTR(null()))
-    } else if name1.eq_ignore_ascii_case("www.pixiv.net") {
-        ORIGINAL.lock().unwrap().get_mut().unwrap()(s, PCSTR(null()))
-    } else if name1.eq_ignore_ascii_case("a.pixiv.org") {
+    let result = if name1.ends_with("pixiv.net") {
         ORIGINAL.lock().unwrap().get_mut().unwrap()(s, PCSTR(null()))
     } else {
         ORIGINAL.lock().unwrap().get_mut().unwrap()(s, name)

@@ -1,6 +1,5 @@
 use dll_syringe::payload_procedure;
 use injector::Injection;
-use widestring::Utf16String;
 use windows::core::PCWSTR;
 
 pub mod chrome_hook;
