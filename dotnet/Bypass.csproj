@@ -6,6 +6,7 @@
 		<Nullable>enable</Nullable>
 		<PackageOutputPath>nupkgs</PackageOutputPath>
 		<PackageId>Pixeval.$(AssemblyName)</PackageId>
+		<MinVerTagPrefix>v</MinVerTagPrefix>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
