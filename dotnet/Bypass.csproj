@@ -5,6 +5,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<PackageOutputPath>nupkgs</PackageOutputPath>
+		<RootNamespace>Pixeval.$(AssemblyName)</RootNamespace>
 		<PackageId>Pixeval.$(AssemblyName)</PackageId>
 		<MinVerTagPrefix>v</MinVerTagPrefix>
 		<LangVersion>preview</LangVersion>
