@@ -6,7 +6,7 @@ use std::{
     ffi::c_void,
     mem::{size_of, transmute},
     ops::Sub,
-    ptr::null,
+    ptr::{null, null_mut},
     sync::Mutex,
 };
 use windows::{
@@ -49,7 +49,7 @@ fn find_target() -> NativePointer {
     let basename = current.file_stem().unwrap().to_str().unwrap();
     log::info!("{}", basename);
     let mut module_handle = 0isize;
-    while module_handle == 0 {
+    while Module::find_export_by_name(None, "ChromeMain").unwrap().0 == null_mut::<c_void>() {
         module_handle = Module::find_base_address(format!("{}.dll", basename).as_str()).0 as isize;
     }
     let module_info = MODULEINFO::default();
