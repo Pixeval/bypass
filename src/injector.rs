@@ -55,13 +55,13 @@ pub fn install_dns_hook(injection: &Injection, enabled: bool) {
     remote.call(&enabled).unwrap();
 }
 
-pub fn install_ssl_hook(injection: &Injection, enabled: bool) {
+pub fn install_schannel_ssl_hook(injection: &Injection, enabled: bool) {
     let remote = unsafe {
         injection
             .syringe_ptr
             .as_ref()
             .unwrap()
-            .get_payload_procedure::<fn(bool) -> ()>(injection.module, "install_ssl_hook")
+            .get_payload_procedure::<fn(bool) -> ()>(injection.module, "install_schannel_ssl_hook")
     }
     .unwrap()
     .unwrap();
@@ -113,13 +113,13 @@ pub fn set_dns_hook_enabled(injection: &Injection, enabled: bool) {
     remote.call(&enabled).unwrap();
 }
 
-pub fn set_ssl_hook_enabled(injection: &Injection, enabled: bool) {
+pub fn set_schannel_ssl_hook_enabled(injection: &Injection, enabled: bool) {
     let remote = unsafe {
         injection
             .syringe_ptr
             .as_ref()
             .unwrap()
-            .get_payload_procedure::<fn(bool) -> ()>(injection.module, "set_ssl_hook_enabled")
+            .get_payload_procedure::<fn(bool) -> ()>(injection.module, "set_schannel_ssl_hook_enabled")
     }
     .unwrap()
     .unwrap();

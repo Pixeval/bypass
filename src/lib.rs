@@ -41,7 +41,7 @@ payload_procedure! {
 }
 
 payload_procedure! {
-    fn remove_ssl_hook() {
+    fn remove_schannel_ssl_hook() {
         schannel_ssl_hook::remove();
     }
 }
@@ -64,7 +64,7 @@ payload_procedure! {
     }
 }
 payload_procedure! {
-    fn set_ssl_hook_enabled(enabled: bool) {
+    fn set_schannel_ssl_hook_enabled(enabled: bool) {
         *schannel_ssl_hook::ENABLED.lock().unwrap().get_mut() = enabled;
     }
 }
@@ -102,8 +102,11 @@ unsafe extern "C" fn injector_set_dns_hook_enabled(injection: *mut Injection, en
 }
 
 #[no_mangle]
-unsafe extern "C" fn injector_set_ssl_hook_enabled(injection: *mut Injection, enabled: bool) {
-    injector::set_ssl_hook_enabled(injection.as_ref().unwrap(), enabled)
+unsafe extern "C" fn injector_set_schannel_ssl_hook_enabled(
+    injection: *mut Injection,
+    enabled: bool,
+) {
+    injector::set_schannel_ssl_hook_enabled(injection.as_ref().unwrap(), enabled)
 }
 
 #[no_mangle]
