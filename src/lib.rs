@@ -1,5 +1,6 @@
 use dll_syringe::payload_procedure;
 use injector::Injection;
+use widestring::Utf16String;
 use windows::core::PCWSTR;
 
 pub mod chrome_hook;
@@ -11,12 +12,11 @@ pub mod schannel_ssl_hook;
 payload_procedure! {
     fn install_dns_hook(auto_enable: bool) {
         dns_hook::install(auto_enable);
-
     }
 }
 
 payload_procedure! {
-    fn install_ssl_hook(auto_enable: bool) {
+    fn install_schannel_ssl_hook(auto_enable: bool) {
         schannel_ssl_hook::install(auto_enable);
     }
 }
@@ -94,6 +94,40 @@ unsafe extern "C" fn injector_inject(
 #[no_mangle]
 unsafe extern "C" fn injector_eject(injection: *mut Injection) {
     injector::eject(injection.as_ref().unwrap()).unwrap()
+}
+
+#[no_mangle]
+unsafe extern "C" fn injector_install_dns_hook(injection: *mut Injection, auto_enable: bool) {
+    injector::install_dns_hook(injection.as_ref().unwrap(), auto_enable)
+}
+
+#[no_mangle]
+unsafe extern "C" fn injector_install_schannel_ssl_hook(
+    injection: *mut Injection,
+    auto_enable: bool,
+) {
+    injector::install_schannel_ssl_hook(injection.as_ref().unwrap(), auto_enable)
+}
+
+#[no_mangle]
+unsafe extern "C" fn injector_install_chrome_hook(
+    injection: *mut Injection,
+    auto_enable: bool,
+    injected_dll_path: *const u16,
+) {
+    injector::install_chrome_hook(
+        injection.as_ref().unwrap(),
+        auto_enable,
+        PCWSTR::from_raw(injected_dll_path).to_string().unwrap(),
+    )
+}
+
+#[no_mangle]
+unsafe extern "C" fn injector_install_chrome_ssl_hook(
+    injection: *mut Injection,
+    auto_enable: bool,
+) {
+    injector::install_chrome_ssl_hook(injection.as_ref().unwrap(), auto_enable)
 }
 
 #[no_mangle]
