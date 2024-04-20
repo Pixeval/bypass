@@ -63,7 +63,7 @@ unsafe extern "system" fn detour(
         let path = INJECTED_DLL_PATH.as_ref().unwrap();
         let injection = injector::inject(pid, path).unwrap();
         injector::install_chrome_ssl_hook(&injection, true);
-        injector::install_dns_hook(&injection, true);
+        injector::install_ws2_socket_dns_hook(&injection, true);
     }
     return result;
 }

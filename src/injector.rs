@@ -41,13 +41,26 @@ pub fn eject(injection: &Injection) -> Result<(), EjectError> {
     }
 }
 
-pub fn install_dns_hook(injection: &Injection, enabled: bool) {
+pub fn install_ws2_native_dns_hook(injection: &Injection, enabled: bool) {
     let remote = unsafe {
         injection
             .syringe_ptr
             .as_ref()
             .unwrap()
-            .get_payload_procedure::<fn(bool) -> ()>(injection.module, "install_dns_hook")
+            .get_payload_procedure::<fn(bool) -> ()>(injection.module, "install_ws2_native_dns_hook")
+    }
+    .unwrap()
+    .unwrap();
+    remote.call(&enabled).unwrap();
+}
+
+pub fn install_ws2_socket_dns_hook(injection: &Injection, enabled: bool) {
+    let remote = unsafe {
+        injection
+            .syringe_ptr
+            .as_ref()
+            .unwrap()
+            .get_payload_procedure::<fn(bool) -> ()>(injection.module, "install_ws2_socket_dns_hook")
     }
     .unwrap()
     .unwrap();
@@ -96,7 +109,7 @@ pub fn install_chrome_ssl_hook(injection: &Injection, enabled: bool) {
     remote.call(&enabled).unwrap();
 }
 
-pub fn set_dns_hook_enabled(injection: &Injection, enabled: bool) {
+pub fn set_ws2_native_dns_hook_enabled(injection: &Injection, enabled: bool) {
     let remote = unsafe {
         injection
             .syringe_ptr
@@ -104,7 +117,23 @@ pub fn set_dns_hook_enabled(injection: &Injection, enabled: bool) {
             .unwrap()
             .get_payload_procedure::<fn(bool) -> ()>(
                 injection.module,
-                "set_dns_hook_enabled",
+                "set_ws2_native_dns_hook_enabled",
+            )
+    }
+    .unwrap()
+    .unwrap();
+    remote.call(&enabled).unwrap();
+}
+
+pub fn set_ws2_socket_dns_hook_enabled(injection: &Injection, enabled: bool) {
+    let remote = unsafe {
+        injection
+            .syringe_ptr
+            .as_ref()
+            .unwrap()
+            .get_payload_procedure::<fn(bool) -> ()>(
+                injection.module,
+                "set_ws2_socket_dns_hook_enabled",
             )
     }
     .unwrap()

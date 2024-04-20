@@ -79,9 +79,7 @@ unsafe extern "system" fn detour(
     unsafe {
         if *ENABLED.lock().unwrap().get() {
             let target_name = psztargetname.to_string().unwrap();
-            if target_name.eq_ignore_ascii_case("pixiv.net")
-                || target_name.eq_ignore_ascii_case("www.pixiv.net")
-            {
+            if target_name.ends_with("pixiv.net") {
                 let psztargetname = PCWSTR(null());
                 return ORIGINAL.lock().unwrap().get_mut().unwrap()(
                     phcredential,

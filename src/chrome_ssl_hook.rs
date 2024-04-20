@@ -3,14 +3,12 @@ use lazy_static::lazy_static;
 use std::{
     cell::UnsafeCell,
     ffi::c_void,
-    mem::{transmute},
+    mem::transmute,
     ops::{Add, Sub},
-    ptr::{null},
+    ptr::null,
     sync::Mutex,
 };
-use windows::{
-    core::PCSTR,
-};
+use windows::core::PCSTR;
 
 lazy_static! {
     static ref GUM: Gum = unsafe { Gum::obtain() };

@@ -1,9 +1,9 @@
-use bypass::{dns_hook, injector, schannel_ssl_hook};
+use bypass::{injector, schannel_ssl_hook, ws2_native_dns_hook};
 use reqwest::{Client, StatusCode};
 
 #[futures_test::test]
 async fn reqwest_test1() {
-    dns_hook::install(true);
+    ws2_native_dns_hook::install(true);
     schannel_ssl_hook::install(true);
 
     let client = Client::new();
@@ -13,7 +13,7 @@ async fn reqwest_test1() {
     let response = client.get(url).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    dns_hook::remove();
+    ws2_native_dns_hook::remove();
     schannel_ssl_hook::remove();
 }
 

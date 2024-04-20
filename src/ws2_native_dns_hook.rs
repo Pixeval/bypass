@@ -85,7 +85,7 @@ pub fn install(auto_enable: bool) {
     }
     interceptor.end_transaction();
     *ENABLED.lock().unwrap().get_mut() = auto_enable;
-    log::info!("dns hook installed");
+    log::info!("ws2 native dns hook installed");
 }
 
 pub fn remove() {
