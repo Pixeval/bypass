@@ -4,7 +4,7 @@ use std::{cell::UnsafeCell, ffi::c_void, mem::transmute, sync::Mutex};
 use windows::core::{PCWSTR, PWSTR};
 use windows_sys::Win32::{
     Foundation::BOOL,
-    Security::SECURITY_ATTRIBUTES,
+    Security::{DACL_SECURITY_INFORMATION, SECURITY_ATTRIBUTES},
     System::Threading::{PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW},
 };
 
@@ -62,8 +62,8 @@ unsafe extern "system" fn detour(
         let pid = lpprocessinformation.as_ref().unwrap().dwProcessId;
         let path = INJECTED_DLL_PATH.as_ref().unwrap();
         let injection = injector::inject(pid, path).unwrap();
-        injector::install_chrome_ssl_hook(&injection, true);
-        injector::install_ws2_socket_dns_hook(&injection, true);
+        // injector::install_chrome_ssl_hook(&injection, true);
+        injector::install_ws2_socket_dns_hook(&injection, false);
     }
     return result;
 }

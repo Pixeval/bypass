@@ -57,7 +57,6 @@ fn find_target() -> Option<NativePointer> {
         return None;
     }
     let address = result[0].address;
-    log::info!("found pattern at {:?}", address);
     let memory_range = MemoryRange::new(NativePointer(address.sub(200) as *mut c_void), 200);
     let result1 = memory_range.scan(&MatchPattern::from_string("41 56").unwrap());
     let result2 = memory_range.scan(&MatchPattern::from_string("56 57").unwrap());
@@ -69,7 +68,6 @@ fn find_target() -> Option<NativePointer> {
     } else {
         result2[0].address
     };
-    log::info!("found target at {:?}", address);
     Some(NativePointer(address as *mut c_void))
 }
 

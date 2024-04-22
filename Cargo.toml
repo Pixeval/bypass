@@ -10,21 +10,23 @@ version = "0.52.0"
 features = [
     "Win32_Foundation",
     "Win32_System_IO",
-    "Win32_Networking_WinSock",
     "Win32_Security_Authentication_Identity",
     "Win32_Security_Credentials",
     "Win32_System_SystemServices",
     "Win32_System_LibraryLoader",
+    "Win32_Networking_WinSock",
 ]
 
 [dependencies.windows]
 version = "0.56.0"
 features = [
     "Win32_Foundation",
+    "Win32_System_IO",
     "Win32_Security_Authentication_Identity",
     "Win32_System_ProcessStatus",
     "Win32_System_Threading",
     "Win32_System_LibraryLoader",
+    "Win32_Networking_WinSock",
 ]
 
 [dependencies.frida-gum]
@@ -33,16 +35,13 @@ features = ["auto-download", "backtrace"]
 
 [dependencies]
 lazy_static = "1.4.0"
-hickory-resolver = { version = "0.24.0", features = [
-    "dns-over-native-tls",
-    "dns-over-tls",
-] }
+tokio = { version = "1.37.0", features = ["full"] }
 log = "0.4.21"
 eventlog = "0.2.2"
 dll-syringe = { version = "0.15.2", features = ["full"] }
 widestring = "1.1.0"
+hickory-resolver = { version = "0.24.1", features = ["dns-over-https-rustls"] }
 
 [dev-dependencies]
-futures-test = "0.3.30"
 reqwest = { version = "0.12.2", features = ["native-tls"] }
 which = "6.0.1"

@@ -1,7 +1,7 @@
 use bypass::{injector, schannel_ssl_hook, ws2_native_dns_hook};
 use reqwest::{Client, StatusCode};
 
-#[futures_test::test]
+#[tokio::test]
 async fn reqwest_test1() {
     ws2_native_dns_hook::install(true);
     schannel_ssl_hook::install(true);
@@ -20,26 +20,30 @@ async fn reqwest_test1() {
 use std::{
     env::current_exe,
     fs,
+    io::{Read, Stdout},
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
 };
 
-#[futures_test::test]
+#[tokio::test]
 async fn chrome_test1() {
     let chrome_paths = which::which_in_global(
         "chrome.exe",
         Some(r"C:\Program Files\Google\Chrome\Application"),
     )
     .expect("You should install chrome first.");
+
     let mut chrome_process = Command::new(chrome_paths.into_iter().next().unwrap())
         .arg("--no-proxy-server")
         .spawn()
         .expect("Failed to start Chrome.");
+
     let path: PathBuf = current_exe()
         .unwrap()
         .parent()
         .unwrap()
-        .join("..")
+        .parent()
+        .unwrap()
         .join("bypass.dll");
     let path = fs::canonicalize(path).unwrap();
     let _exists = Path::exists(&path);

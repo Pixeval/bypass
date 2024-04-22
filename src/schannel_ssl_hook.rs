@@ -35,7 +35,7 @@ type InitializeSecurityContextWFunc = unsafe extern "system" fn(
 ) -> HRESULT;
 
 pub fn install(auto_enable: bool) {
-    eventlog::init("Pixeval.Bypass", log::Level::Info).ok();
+    eventlog::init("Pixeval.Bypass", log::Level::Trace).ok();
     let mut interceptr = Interceptor::obtain(&GUM);
     interceptr.begin_transaction();
     unsafe {

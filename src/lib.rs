@@ -161,12 +161,18 @@ unsafe extern "C" fn injector_install_chrome_ssl_hook(
 }
 
 #[no_mangle]
-unsafe extern "C" fn injector_set_ws2_native_dns_hook_enabled(injection: *mut Injection, enabled: bool) {
+unsafe extern "C" fn injector_set_ws2_native_dns_hook_enabled(
+    injection: *mut Injection,
+    enabled: bool,
+) {
     injector::set_ws2_native_dns_hook_enabled(injection.as_ref().unwrap(), enabled)
 }
 
 #[no_mangle]
-unsafe extern "C" fn injector_set_ws2_socket_dns_hook_enabled(injection: *mut Injection, enabled: bool) {
+unsafe extern "C" fn injector_set_ws2_socket_dns_hook_enabled(
+    injection: *mut Injection,
+    enabled: bool,
+) {
     injector::set_ws2_socket_dns_hook_enabled(injection.as_ref().unwrap(), enabled)
 }
 
