@@ -8,7 +8,7 @@ use std::{
     ptr::null,
     sync::Mutex,
 };
-use windows::core::PCSTR;
+use windows::{core::PCSTR, Win32::Networking::WinSock::ADDRINFO_DNS_SERVER_0};
 
 lazy_static! {
     static ref GUM: Gum = unsafe { Gum::obtain() };
@@ -22,12 +22,12 @@ type TargetFunc = unsafe extern "C" fn(s: *mut c_void, name: PCSTR) -> i32;
 
 unsafe extern "C" fn detour(s: *mut c_void, name: PCSTR) -> i32 {
     let name1 = name.to_string().unwrap();
-    let result = if name1.ends_with("pixiv.net") {
-        ORIGINAL.lock().unwrap().get_mut().unwrap()(s, PCSTR(null()))
-    } else {
-        ORIGINAL.lock().unwrap().get_mut().unwrap()(s, name)
+    if name1.ends_with("pixiv.net") {
+        return ORIGINAL.lock().unwrap().get_mut().unwrap()(s, PCSTR(null()));
+    } else if name1.ends_with("pximg.net") {
+        return ORIGINAL.lock().unwrap().get_mut().unwrap()(s, PCSTR(null()));
     };
-    return result;
+    return ORIGINAL.lock().unwrap().get_mut().unwrap()(s, name);
 }
 
 fn find_target() -> Option<NativePointer> {
@@ -58,21 +58,23 @@ fn find_target() -> Option<NativePointer> {
     }
     let address = result[0].address;
     let memory_range = MemoryRange::new(NativePointer(address.sub(200) as *mut c_void), 200);
-    let result1 = memory_range.scan(&MatchPattern::from_string("41 56").unwrap());
-    let result2 = memory_range.scan(&MatchPattern::from_string("56 57").unwrap());
-    if result1.is_empty() && result2.is_empty() {
-        return None;
-    }
-    let address = if !result1.is_empty() {
-        result1[0].address
-    } else {
-        result2[0].address
+    let result1 = memory_range.scan(&MatchPattern::from_string("41 56 56 57 53").unwrap());
+    let result2 = memory_range.scan(&MatchPattern::from_string("56 57 48 83").unwrap());
+    let address = match (result1.last(), result2.last()) {
+        (None, None) => None,
+        (None, Some(address)) => Some(address.address),
+        (Some(address), None) => Some(address.address),
+        (Some(address1), Some(address2)) => Some(std::cmp::max(address1.address, address2.address)),
     };
-    Some(NativePointer(address as *mut c_void))
+    if let Some(address) = address {
+        Some(NativePointer(address as *mut c_void))
+    } else {
+        None
+    }
 }
 
 pub fn install(auto_enable: bool) {
-    eventlog::init("Pixeval.Bypass", log::Level::Trace).ok();
+    eventlog::init("Pixeval.Bypass", log::Level::Info).ok();
     let mut interceptr = Interceptor::obtain(&GUM);
     if let Some(target) = find_target() {
         interceptr.begin_transaction();
@@ -87,7 +89,11 @@ pub fn install(auto_enable: bool) {
         }
         interceptr.end_transaction();
         *ENABLED.lock().unwrap().get_mut() = auto_enable;
-        log::info!("chrome ssl hook installed");
+        log::info!(
+            "chrome ssl hook installed on {:?} for pid: {}",
+            target.0,
+            std::process::id()
+        );
     } else {
         log::error!("can't find target");
     }

@@ -1,11 +1,9 @@
 use frida_gum::interceptor::Interceptor;
 use frida_gum::{Gum, Module, NativePointer};
-use hickory_resolver::config::{ResolverConfig, ResolverOpts};
-use hickory_resolver::proto::op::{Message, MessageType};
-use hickory_resolver::proto::rr::rdata::A;
-use hickory_resolver::proto::rr::Record;
-use hickory_resolver::proto::serialize::binary::{BinDecodable, BinEncodable};
-use hickory_resolver::Resolver;
+use hickory_proto::op::{Message, MessageType};
+use hickory_proto::rr::rdata::A;
+use hickory_proto::rr::Record;
+use hickory_proto::serialize::binary::{BinDecodable, BinEncodable};
 use lazy_static::lazy_static;
 use std::cell::UnsafeCell;
 use std::ffi::c_void;
@@ -13,7 +11,9 @@ use std::mem::transmute;
 use std::sync::Mutex;
 use tokio::runtime::Runtime;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
-use windows_sys::Win32::Networking::WinSock::{WSASetEvent, LPWSAOVERLAPPED_COMPLETION_ROUTINE, SOCKADDR, SOCKET, WSABUF};
+use windows_sys::Win32::Networking::WinSock::{
+    WSASetEvent, LPWSAOVERLAPPED_COMPLETION_ROUTINE, SOCKADDR, SOCKET, WSABUF,
+};
 use windows_sys::Win32::System::IO::OVERLAPPED;
 
 lazy_static! {
@@ -24,8 +24,6 @@ lazy_static! {
         Mutex::new(UnsafeCell::new(None));
     static ref ORIGINAL2: Mutex<UnsafeCell<Option<WSARecvFromFunc>>> =
         Mutex::new(UnsafeCell::new(None));
-    static ref RESOLVER: Resolver =
-        Resolver::new(ResolverConfig::google_https(), ResolverOpts::default()).unwrap();
 }
 
 struct Payload {
@@ -76,31 +74,30 @@ unsafe extern "system" fn detour1(
     unsafe {
         if *ENABLED.lock().unwrap().get_mut() {
             let buffer = *lpbuffers.as_ref().unwrap();
-            if let Ok(message) = Message::from_bytes(std::slice::from_raw_parts(
-                buffer.buf,
-                buffer.len as usize,
-            )) {
+            if let Ok(message) =
+                Message::from_bytes(std::slice::from_raw_parts(buffer.buf, buffer.len as usize))
+            {
                 let addr = *lpto;
                 if let Some(query) = message.query() {
                     let mut message = message.clone();
                     message.set_message_type(MessageType::Response);
-                    if query.name().to_string().eq_ignore_ascii_case("pixiv.net.") {
+                    if query.name().to_string().eq("pixiv.net.") {
                         message.add_answers([
                             Record::from_rdata(
                                 query.name().clone(),
-                                3000,
+                                1000,
                                 A::new(210, 140, 92, 181),
                             )
                             .into_record_of_rdata(),
                             Record::from_rdata(
                                 query.name().clone(),
-                                3000,
+                                1000,
                                 A::new(210, 140, 92, 183),
                             )
                             .into_record_of_rdata(),
                             Record::from_rdata(
                                 query.name().clone(),
-                                3000,
+                                1000,
                                 A::new(210, 140, 92, 187),
                             )
                             .into_record_of_rdata(),
@@ -117,22 +114,45 @@ unsafe extern "system" fn detour1(
                         *lpnumberofbytessent = len as u32;
                         WSASetEvent((*lpoverlapped).hEvent);
                         return 0;
-                    } else if query
-                        .name()
-                        .to_string()
-                        .eq_ignore_ascii_case("www.pixiv.net.")
-                    {
+                    } else if query.name().to_string().eq("www.pixiv.net.") {
                         message.add_answers([
                             Record::from_rdata(
                                 query.name().clone(),
-                                3000,
+                                1000,
                                 A::new(104, 18, 42, 239),
                             )
                             .into_record_of_rdata(),
                             Record::from_rdata(
                                 query.name().clone(),
-                                3000,
+                                1000,
                                 A::new(172, 64, 145, 17),
+                            )
+                            .into_record_of_rdata(),
+                        ]);
+                        TX.as_ref()
+                            .unwrap()
+                            .send(Payload {
+                                message: message.to_owned(),
+                                addr,
+                                addr_len: itolen,
+                            })
+                            .ok();
+                        let len = message.to_bytes().unwrap().len();
+                        *lpnumberofbytessent = len as u32;
+                        WSASetEvent((*lpoverlapped).hEvent);
+                        return 0;
+                    } else if query.name().to_string().ends_with("pximg.net.") {
+                        message.add_answers([
+                            Record::from_rdata(
+                                query.name().clone(),
+                                1000,
+                                A::new(210, 140, 139, 131),
+                            )
+                            .into_record_of_rdata(),
+                            Record::from_rdata(
+                                query.name().clone(),
+                                1000,
+                                A::new(210, 140, 139, 132),
                             )
                             .into_record_of_rdata(),
                         ]);

@@ -1,35 +1,16 @@
-use bypass::{injector, schannel_ssl_hook, ws2_native_dns_hook};
-use reqwest::{Client, StatusCode};
-
-#[tokio::test]
-async fn reqwest_test1() {
-    ws2_native_dns_hook::install(true);
-    schannel_ssl_hook::install(true);
-
-    let client = Client::new();
-
-    let url = "https://www.pixiv.net/artworks/117400067";
-
-    let response = client.get(url).send().await.unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-    ws2_native_dns_hook::remove();
-    schannel_ssl_hook::remove();
-}
-
+use bypass::injector;
 use std::{
     env::current_exe,
     fs,
-    io::{Read, Stdout},
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::Command,
 };
 
-#[tokio::test]
-async fn chrome_test1() {
+#[tokio::main]
+async fn main() {
     let chrome_paths = which::which_in_global(
         "chrome.exe",
-        Some(r"C:\Program Files\Google\Chrome\Application"),
+        Some(r"C:\Users\Summpot\Desktop\chrome-win"),
     )
     .expect("You should install chrome first.");
 

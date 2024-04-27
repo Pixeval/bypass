@@ -75,7 +75,6 @@ unsafe extern "system" fn detour(
     pfcontextattr: *mut u32,
     ptsexpiry: *mut i64,
 ) -> HRESULT {
-    log::info!("ssl hook entered");
     unsafe {
         if *ENABLED.lock().unwrap().get() {
             let target_name = psztargetname.to_string().unwrap();

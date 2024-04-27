@@ -40,8 +40,9 @@ log = "0.4.21"
 eventlog = "0.2.2"
 dll-syringe = { version = "0.15.2", features = ["full"] }
 widestring = "1.1.0"
-hickory-resolver = { version = "0.24.1", features = ["dns-over-https-rustls"] }
+hickory-proto = "0.24.1"
 
 [dev-dependencies]
+curl = "0.4.46"
 reqwest = { version = "0.12.2", features = ["native-tls"] }
 which = "6.0.1"

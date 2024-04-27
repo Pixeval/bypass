@@ -2,6 +2,7 @@ use dll_syringe::payload_procedure;
 use injector::Injection;
 use windows::core::PCWSTR;
 
+mod utils;
 pub mod chrome_hook;
 pub mod chrome_ssl_hook;
 pub mod injector;
