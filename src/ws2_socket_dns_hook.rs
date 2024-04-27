@@ -114,7 +114,7 @@ unsafe extern "system" fn detour1(
                         *lpnumberofbytessent = len as u32;
                         WSASetEvent((*lpoverlapped).hEvent);
                         return 0;
-                    } else if query.name().to_string().eq("www.pixiv.net.") {
+                    } else if query.name().to_string().ends_with(".pixiv.net.") {
                         message.add_answers([
                             Record::from_rdata(
                                 query.name().clone(),
