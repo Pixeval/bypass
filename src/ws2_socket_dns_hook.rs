@@ -84,49 +84,11 @@ unsafe extern "system" fn detour1(
                     let mut header = message.header().clone();
                     header.set_answer_count(1);
                     message.set_header(header);
-                    if query.name().to_string().eq("pixiv.net.") {
+                    if query.name().to_string().ends_with("pixiv.net.") {
                         message.add_answers([Record::from_rdata(
                             query.name().clone(),
                             1000,
                             A::new(210, 140, 92, 181),
-                        )
-                        .into_record_of_rdata()]);
-                        TX.as_ref()
-                            .unwrap()
-                            .send(Payload {
-                                message: message.to_owned(),
-                                addr,
-                                addr_len: itolen,
-                            })
-                            .ok();
-                        let len = message.to_bytes().unwrap().len();
-                        *lpnumberofbytessent = len as u32;
-                        WSASetEvent((*lpoverlapped).hEvent);
-                        return 0;
-                    } else if query.name().to_string().eq("www.pixiv.net.") {
-                        message.add_answers([Record::from_rdata(
-                            query.name().clone(),
-                            1000,
-                            A::new(210, 140, 92, 181),
-                        )
-                        .into_record_of_rdata()]);
-                        TX.as_ref()
-                            .unwrap()
-                            .send(Payload {
-                                message: message.to_owned(),
-                                addr,
-                                addr_len: itolen,
-                            })
-                            .ok();
-                        let len = message.to_bytes().unwrap().len();
-                        *lpnumberofbytessent = len as u32;
-                        WSASetEvent((*lpoverlapped).hEvent);
-                        return 0;
-                    } else if query.name().to_string().ends_with(".pixiv.net.") {
-                        message.add_answers([Record::from_rdata(
-                            query.name().clone(),
-                            1000,
-                            A::new(104, 18, 42, 239),
                         )
                         .into_record_of_rdata()]);
                         TX.as_ref()
