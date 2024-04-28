@@ -74,8 +74,14 @@ type GetAddrInfoExWFunc = unsafe extern "system" fn(
 ) -> i32;
 
 unsafe fn lookup(name: &str) -> Option<SOCKADDR> {
-    let ipv4 = if name.contains("pixiv.net") {
+    let ipv4 = if name.eq("pixiv.net") {
         Some(Ipv4Addr::new(210, 140, 92, 183))
+    } else if name.ends_with(".pixiv.net") {
+        Some(Ipv4Addr::new(104, 18, 42, 239))
+    } else if name.eq("www.recaptcha.net") {
+        Some(Ipv4Addr::new(142, 250, 191, 67))
+    } else if name.ends_with("pximg.net") {
+        Some(Ipv4Addr::new(210, 140, 139, 131))
     } else {
         None
     };

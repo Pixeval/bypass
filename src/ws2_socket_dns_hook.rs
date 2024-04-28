@@ -81,27 +81,16 @@ unsafe extern "system" fn detour1(
                 if let Some(query) = message.query() {
                     let mut message = message.clone();
                     message.set_message_type(MessageType::Response);
+                    let mut header = message.header().clone();
+                    header.set_answer_count(1);
+                    message.set_header(header);
                     if query.name().to_string().eq("pixiv.net.") {
-                        message.add_answers([
-                            Record::from_rdata(
-                                query.name().clone(),
-                                1000,
-                                A::new(210, 140, 92, 181),
-                            )
-                            .into_record_of_rdata(),
-                            Record::from_rdata(
-                                query.name().clone(),
-                                1000,
-                                A::new(210, 140, 92, 183),
-                            )
-                            .into_record_of_rdata(),
-                            Record::from_rdata(
-                                query.name().clone(),
-                                1000,
-                                A::new(210, 140, 92, 187),
-                            )
-                            .into_record_of_rdata(),
-                        ]);
+                        message.add_answers([Record::from_rdata(
+                            query.name().clone(),
+                            1000,
+                            A::new(210, 140, 92, 181),
+                        )
+                        .into_record_of_rdata()]);
                         TX.as_ref()
                             .unwrap()
                             .send(Payload {
@@ -114,21 +103,32 @@ unsafe extern "system" fn detour1(
                         *lpnumberofbytessent = len as u32;
                         WSASetEvent((*lpoverlapped).hEvent);
                         return 0;
-                    }  else if query.name().to_string().ends_with(".pixiv.net.") {
-                        message.add_answers([
-                            Record::from_rdata(
-                                query.name().clone(),
-                                1000,
-                                A::new(104, 18, 42, 239),
-                            )
-                            .into_record_of_rdata(),
-                            Record::from_rdata(
-                                query.name().clone(),
-                                1000,
-                                A::new(172, 64, 145, 17),
-                            )
-                            .into_record_of_rdata(),
-                        ]);
+                    } else if query.name().to_string().ends_with(".pixiv.net.") {
+                        message.add_answers([Record::from_rdata(
+                            query.name().clone(),
+                            1000,
+                            A::new(104, 18, 42, 239),
+                        )
+                        .into_record_of_rdata()]);
+                        TX.as_ref()
+                            .unwrap()
+                            .send(Payload {
+                                message: message.to_owned(),
+                                addr,
+                                addr_len: itolen,
+                            })
+                            .ok();
+                        let len = message.to_bytes().unwrap().len();
+                        *lpnumberofbytessent = len as u32;
+                        WSASetEvent((*lpoverlapped).hEvent);
+                        return 0;
+                    } else if query.name().to_string().eq("www.recaptcha.net.") {
+                        message.add_answers([Record::from_rdata(
+                            query.name().clone(),
+                            1000,
+                            A::new(142, 250, 191, 67),
+                        )
+                        .into_record_of_rdata()]);
                         TX.as_ref()
                             .unwrap()
                             .send(Payload {
@@ -142,20 +142,12 @@ unsafe extern "system" fn detour1(
                         WSASetEvent((*lpoverlapped).hEvent);
                         return 0;
                     } else if query.name().to_string().ends_with("pximg.net.") {
-                        message.add_answers([
-                            Record::from_rdata(
-                                query.name().clone(),
-                                1000,
-                                A::new(210, 140, 139, 131),
-                            )
-                            .into_record_of_rdata(),
-                            Record::from_rdata(
-                                query.name().clone(),
-                                1000,
-                                A::new(210, 140, 139, 132),
-                            )
-                            .into_record_of_rdata(),
-                        ]);
+                        message.add_answers([Record::from_rdata(
+                            query.name().clone(),
+                            1000,
+                            A::new(210, 140, 139, 131),
+                        )
+                        .into_record_of_rdata()]);
                         TX.as_ref()
                             .unwrap()
                             .send(Payload {
@@ -172,7 +164,6 @@ unsafe extern "system" fn detour1(
                 }
             }
         }
-        log::info!("should be logged from send");
         return ORIGINAL1.lock().unwrap().get_mut().unwrap()(
             s,
             lpbuffers,
