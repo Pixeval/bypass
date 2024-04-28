@@ -22,7 +22,9 @@ type TargetFunc = unsafe extern "C" fn(s: *mut c_void, name: PCSTR) -> i32;
 
 unsafe extern "C" fn detour(s: *mut c_void, name: PCSTR) -> i32 {
     let name1 = name.to_string().unwrap();
-    if name1.ends_with("pixiv.net") {
+    if name1.eq("pixiv.net") {
+        return ORIGINAL.lock().unwrap().get_mut().unwrap()(s, PCSTR(null()));
+    } else if name1.eq("www.pixiv.net") {
         return ORIGINAL.lock().unwrap().get_mut().unwrap()(s, PCSTR(null()));
     } else if name1.ends_with("pximg.net") {
         return ORIGINAL.lock().unwrap().get_mut().unwrap()(s, PCSTR(null()));
