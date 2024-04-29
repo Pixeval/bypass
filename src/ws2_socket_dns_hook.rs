@@ -88,26 +88,7 @@ unsafe extern "system" fn detour1(
                         message.add_answers([Record::from_rdata(
                             query.name().clone(),
                             1000,
-                            A::new(210, 140, 92, 181),
-                        )
-                        .into_record_of_rdata()]);
-                        TX.as_ref()
-                            .unwrap()
-                            .send(Payload {
-                                message: message.to_owned(),
-                                addr,
-                                addr_len: itolen,
-                            })
-                            .ok();
-                        let len = message.to_bytes().unwrap().len();
-                        *lpnumberofbytessent = len as u32;
-                        WSASetEvent((*lpoverlapped).hEvent);
-                        return 0;
-                    } else if query.name().to_string().eq("www.recaptcha.net.") {
-                        message.add_answers([Record::from_rdata(
-                            query.name().clone(),
-                            1000,
-                            A::new(142, 250, 191, 67),
+                            A::new(210, 140, 92, 183),
                         )
                         .into_record_of_rdata()]);
                         TX.as_ref()
