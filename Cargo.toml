@@ -3,7 +3,14 @@ name = "bypass"
 edition = "2021"
 
 [lib]
-crate-type = ["lib", "cdylib"]
+crate-type = ["lib"]
+
+
+[profile.release]
+opt-level = "z"
+panic = "abort"
+strip = true
+lto = true
 
 [dependencies.windows-sys]
 version = "0.52.0"
@@ -29,20 +36,24 @@ features = [
     "Win32_Networking_WinSock",
 ]
 
-[dependencies.frida-gum]
-version = "0.13.6"
-features = ["auto-download", "backtrace"]
-
 [dependencies]
 lazy_static = "1.4.0"
-tokio = { version = "1.37.0", features = ["full"] }
-log = "0.4.21"
-eventlog = "0.2.2"
-dll-syringe = { version = "0.15.2", features = ["full"] }
-widestring = "1.1.0"
+tokio = { version = "1.37.0", features = [
+    "sync",
+    "net",
+    "macros",
+    "rt-multi-thread",
+] }
 hickory-proto = "0.24.1"
+frida-gum = { version = "0.13.6", features = ["auto-download"] }
+frida = { version = "0.13.6", features = ["auto-download"] }
+futures = "0.3.30"
+anyhow = "1.0.86"
+rumqttc = "0.24.0"
+log = "0.4.21"
+libc = "0.2.155"
+
 
 [dev-dependencies]
-curl = "0.4.46"
 reqwest = { version = "0.12.2", features = ["native-tls"] }
 which = "6.0.1"

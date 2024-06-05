@@ -8,8 +8,6 @@ use windows_sys::Win32::{
     System::Threading::{PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW},
 };
 
-use crate::injector::{self};
-
 lazy_static! {
     static ref GUM: Gum = unsafe { Gum::obtain() };
     pub static ref ENABLED: Mutex<UnsafeCell<bool>> = Mutex::new(UnsafeCell::new(false));
@@ -62,16 +60,11 @@ unsafe extern "system" fn detour(
     if command_line.contains("--utility-sub-type=network.mojom.NetworkService") {
         let pid = lpprocessinformation.as_ref().unwrap().dwProcessId;
         let path = INJECTED_DLL_PATH.as_ref().unwrap();
-        let injection = injector::inject(pid, path).unwrap();
-        injector::install_chrome_ssl_hook(&injection, true);
-        injector::install_ws2_socket_dns_hook(&injection, true);
-        injector::install_ws2_native_dns_hook(&injection, true);
     }
     return result;
 }
 
-pub fn install(auto_enable: bool, injected_dll_path: String) {
-    eventlog::init("Pixeval.Bypass", log::Level::Trace).ok();
+pub fn install() {
     let mut interceptr = Interceptor::obtain(&GUM);
     interceptr.begin_transaction();
     unsafe {
@@ -84,9 +77,6 @@ pub fn install(auto_enable: bool, injected_dll_path: String) {
         ));
     }
     interceptr.end_transaction();
-    *ENABLED.lock().unwrap().get_mut() = auto_enable;
-    log::info!("chrome hook installed with {}", injected_dll_path);
-    unsafe { INJECTED_DLL_PATH = Some(injected_dll_path) };
 }
 
 pub fn remove() {

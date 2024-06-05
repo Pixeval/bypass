@@ -18,8 +18,6 @@ use windows_sys::Win32::System::IO::OVERLAPPED;
 
 lazy_static! {
     static ref GUM: Gum = unsafe { Gum::obtain() };
-    static ref IO_LOOP: Runtime = Runtime::new().unwrap();
-    pub static ref ENABLED: Mutex<UnsafeCell<bool>> = Mutex::new(UnsafeCell::new(false));
     static ref ORIGINAL1: Mutex<UnsafeCell<Option<WSASendToFunc>>> =
         Mutex::new(UnsafeCell::new(None));
     static ref ORIGINAL2: Mutex<UnsafeCell<Option<WSARecvFromFunc>>> =
@@ -72,57 +70,55 @@ unsafe extern "system" fn detour1(
     lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE,
 ) -> i32 {
     unsafe {
-        if *ENABLED.lock().unwrap().get_mut() {
-            let buffer = *lpbuffers.as_ref().unwrap();
-            if let Ok(message) =
-                Message::from_bytes(std::slice::from_raw_parts(buffer.buf, buffer.len as usize))
-            {
-                let addr = *lpto;
-                if let Some(query) = message.query() {
-                    let mut message = message.clone();
-                    message.set_message_type(MessageType::Response);
-                    let mut header = message.header().clone();
-                    header.set_answer_count(1);
-                    message.set_header(header);
-                    if query.name().to_string().ends_with("pixiv.net.") {
-                        message.add_answers([Record::from_rdata(
-                            query.name().clone(),
-                            1000,
-                            A::new(210, 140, 92, 183),
-                        )
-                        .into_record_of_rdata()]);
-                        TX.as_ref()
-                            .unwrap()
-                            .send(Payload {
-                                message: message.to_owned(),
-                                addr,
-                                addr_len: itolen,
-                            })
-                            .ok();
-                        let len = message.to_bytes().unwrap().len();
-                        *lpnumberofbytessent = len as u32;
-                        WSASetEvent((*lpoverlapped).hEvent);
-                        return 0;
-                    } else if query.name().to_string().ends_with("pximg.net.") {
-                        message.add_answers([Record::from_rdata(
-                            query.name().clone(),
-                            1000,
-                            A::new(210, 140, 139, 131),
-                        )
-                        .into_record_of_rdata()]);
-                        TX.as_ref()
-                            .unwrap()
-                            .send(Payload {
-                                message: message.to_owned(),
-                                addr,
-                                addr_len: itolen,
-                            })
-                            .ok();
-                        let len = message.to_bytes().unwrap().len();
-                        *lpnumberofbytessent = len as u32;
-                        WSASetEvent((*lpoverlapped).hEvent);
-                        return 0;
-                    }
+        let buffer = *lpbuffers.as_ref().unwrap();
+        if let Ok(message) =
+            Message::from_bytes(std::slice::from_raw_parts(buffer.buf, buffer.len as usize))
+        {
+            let addr = *lpto;
+            if let Some(query) = message.query() {
+                let mut message = message.clone();
+                message.set_message_type(MessageType::Response);
+                let mut header = message.header().clone();
+                header.set_answer_count(1);
+                message.set_header(header);
+                if query.name().to_string().ends_with("pixiv.net.") {
+                    message.add_answers([Record::from_rdata(
+                        query.name().clone(),
+                        1000,
+                        A::new(210, 140, 92, 183),
+                    )
+                    .into_record_of_rdata()]);
+                    TX.as_ref()
+                        .unwrap()
+                        .send(Payload {
+                            message: message.to_owned(),
+                            addr,
+                            addr_len: itolen,
+                        })
+                        .ok();
+                    let len = message.to_bytes().unwrap().len();
+                    *lpnumberofbytessent = len as u32;
+                    WSASetEvent((*lpoverlapped).hEvent);
+                    return 0;
+                } else if query.name().to_string().ends_with("pximg.net.") {
+                    message.add_answers([Record::from_rdata(
+                        query.name().clone(),
+                        1000,
+                        A::new(210, 140, 139, 131),
+                    )
+                    .into_record_of_rdata()]);
+                    TX.as_ref()
+                        .unwrap()
+                        .send(Payload {
+                            message: message.to_owned(),
+                            addr,
+                            addr_len: itolen,
+                        })
+                        .ok();
+                    let len = message.to_bytes().unwrap().len();
+                    *lpnumberofbytessent = len as u32;
+                    WSASetEvent((*lpoverlapped).hEvent);
+                    return 0;
                 }
             }
         }
@@ -152,20 +148,18 @@ unsafe extern "system" fn detour2(
     lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE,
 ) -> i32 {
     unsafe {
-        if *ENABLED.lock().unwrap().get_mut() {
-            let receiver = RX.as_mut().unwrap();
-            if !receiver.is_empty() {
-                let payload = receiver.blocking_recv().unwrap();
-                let src = payload.message.to_bytes().unwrap();
-                let buffer = *lpbuffers;
-                let dest = std::slice::from_raw_parts_mut(buffer.buf, buffer.len as usize);
-                dest[..src.len()].copy_from_slice(&src);
-                *lpfrom = payload.addr;
-                *lpfromlen = payload.addr_len;
-                *lpnumberofbytesrecvd = src.len() as u32;
-                WSASetEvent((*lpoverlapped).hEvent);
-                return 0;
-            }
+        let receiver = RX.as_mut().unwrap();
+        if !receiver.is_empty() {
+            let payload = receiver.blocking_recv().unwrap();
+            let src = payload.message.to_bytes().unwrap();
+            let buffer = *lpbuffers;
+            let dest = std::slice::from_raw_parts_mut(buffer.buf, buffer.len as usize);
+            dest[..src.len()].copy_from_slice(&src);
+            *lpfrom = payload.addr;
+            *lpfromlen = payload.addr_len;
+            *lpnumberofbytesrecvd = src.len() as u32;
+            WSASetEvent((*lpoverlapped).hEvent);
+            return 0;
         }
         return ORIGINAL2.lock().unwrap().get_mut().unwrap()(
             s,
@@ -181,8 +175,7 @@ unsafe extern "system" fn detour2(
     }
 }
 
-pub fn install(auto_enable: bool) {
-    eventlog::init("Pixeval.Bypass", log::Level::Trace).ok();
+pub fn install() {
     let mut interceptor = Interceptor::obtain(&GUM);
     interceptor.begin_transaction();
     unsafe {
@@ -202,13 +195,11 @@ pub fn install(auto_enable: bool) {
         ));
     }
     interceptor.end_transaction();
-    *ENABLED.lock().unwrap().get_mut() = auto_enable;
     let (tx, rx) = mpsc::unbounded_channel();
     unsafe {
         TX = Some(tx);
         RX = Some(rx);
     }
-    log::info!("ws2 socket dns hook installed");
 }
 
 pub fn remove() {

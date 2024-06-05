@@ -73,8 +73,7 @@ fn find_target() -> Option<NativePointer> {
     }
 }
 
-pub fn install(auto_enable: bool) {
-    eventlog::init("Pixeval.Bypass", log::Level::Info).ok();
+pub fn install() {
     let mut interceptr = Interceptor::obtain(&GUM);
     if let Some(target) = find_target() {
         interceptr.begin_transaction();
@@ -88,14 +87,6 @@ pub fn install(auto_enable: bool) {
             ));
         }
         interceptr.end_transaction();
-        *ENABLED.lock().unwrap().get_mut() = auto_enable;
-        log::info!(
-            "chrome ssl hook installed on {:?} for pid: {}",
-            target.0,
-            std::process::id()
-        );
-    } else {
-        log::error!("can't find target");
     }
 }
 

@@ -2,10 +2,10 @@ use bypass::{schannel_ssl_hook, ws2_native_dns_hook, ws2_socket_dns_hook};
 use reqwest::{ClientBuilder, Error, StatusCode};
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     schannel_ssl_hook::install(true);
     ws2_native_dns_hook::install(true);
-    let client = ClientBuilder::new().no_proxy().build().unwrap();
+    let client = ClientBuilder::new().no_proxy().build()?;
 
     let url = "https://www.pixiv.net/artworks/117400067";
 

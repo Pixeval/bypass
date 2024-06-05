@@ -17,7 +17,6 @@ use windows::Win32::System::IO::OVERLAPPED;
 
 lazy_static! {
     static ref GUM: Gum = unsafe { Gum::obtain() };
-    pub static ref ENABLED: Mutex<UnsafeCell<bool>> = Mutex::new(UnsafeCell::new(false));
     static ref ORIGINAL1: Mutex<UnsafeCell<Option<GetAddrInfoAFunc>>> =
         Mutex::new(UnsafeCell::new(None));
     static ref ORIGINAL2: Mutex<UnsafeCell<Option<GetAddrInfoWFunc>>> =
@@ -76,7 +75,7 @@ type GetAddrInfoExWFunc = unsafe extern "system" fn(
 unsafe fn lookup(name: &str) -> Option<SOCKADDR> {
     let ipv4 = if name.ends_with("pixiv.net") {
         Some(Ipv4Addr::new(210, 140, 92, 183))
-    }  else if name.ends_with("pximg.net") {
+    } else if name.ends_with("pximg.net") {
         Some(Ipv4Addr::new(210, 140, 139, 131))
     } else {
         None
@@ -100,17 +99,15 @@ unsafe extern "system" fn detour1(
     ppresult: *mut *mut ADDRINFOA,
 ) -> i32 {
     unsafe {
-        if *ENABLED.lock().unwrap().get_mut() {
-            let name = pnodename.to_string().unwrap();
-            if let Some(ip) = lookup(name.as_str()) {
-                let hints = *phints;
-                let mut addr_info = Box::new(hints.clone());
-                let ip = Box::new(ip);
-                addr_info.ai_addrlen = size_of::<SOCKADDR>();
-                addr_info.ai_addr = Box::leak(ip);
-                *ppresult = Box::leak(addr_info);
-                return 0;
-            }
+        let name = pnodename.to_string().unwrap();
+        if let Some(ip) = lookup(name.as_str()) {
+            let hints = *phints;
+            let mut addr_info = Box::new(hints.clone());
+            let ip = Box::new(ip);
+            addr_info.ai_addrlen = size_of::<SOCKADDR>();
+            addr_info.ai_addr = Box::leak(ip);
+            *ppresult = Box::leak(addr_info);
+            return 0;
         }
     }
     return ORIGINAL1.lock().unwrap().get_mut().unwrap()(pnodename, pservicename, phints, ppresult);
@@ -129,18 +126,15 @@ unsafe extern "system" fn detour4(
     lphandle: *mut HANDLE,
 ) -> i32 {
     unsafe {
-        if *ENABLED.lock().unwrap().get_mut() {
-            log::info!("enter ws2 native dns detour");
-            let name = pname.to_string().unwrap();
-            if let Some(ip) = lookup(name.as_str()) {
-                let hints = *hints;
-                let mut addr_info = Box::new(hints.clone());
-                let ip = Box::new(ip);
-                addr_info.ai_addrlen = size_of::<SOCKADDR>();
-                addr_info.ai_addr = Box::leak(ip);
-                *ppresult = Box::leak(addr_info);
-                return 0;
-            }
+        let name = pname.to_string().unwrap();
+        if let Some(ip) = lookup(name.as_str()) {
+            let hints = *hints;
+            let mut addr_info = Box::new(hints.clone());
+            let ip = Box::new(ip);
+            addr_info.ai_addrlen = size_of::<SOCKADDR>();
+            addr_info.ai_addr = Box::leak(ip);
+            *ppresult = Box::leak(addr_info);
+            return 0;
         }
     }
     return ORIGINAL4.lock().unwrap().get_mut().unwrap()(
@@ -157,8 +151,7 @@ unsafe extern "system" fn detour4(
     );
 }
 
-pub fn install(auto_enable: bool) {
-    eventlog::init("Pixeval.Bypass", log::Level::Info).ok();
+pub fn install() {
     let mut interceptor = Interceptor::obtain(&GUM);
     interceptor.begin_transaction();
     unsafe {
@@ -180,8 +173,6 @@ pub fn install(auto_enable: bool) {
         ));
     }
     interceptor.end_transaction();
-    *ENABLED.lock().unwrap().get_mut() = auto_enable;
-    log::info!("ws2 native dns hook installed");
 }
 
 pub fn remove() {

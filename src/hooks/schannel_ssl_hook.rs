@@ -12,7 +12,6 @@ use windows_sys::{
 
 lazy_static! {
     static ref GUM: Gum = unsafe { Gum::obtain() };
-    pub static ref ENABLED: Mutex<UnsafeCell<bool>> = Mutex::new(UnsafeCell::new(false));
     static ref ORIGINAL: Mutex<UnsafeCell<Option<InitializeSecurityContextWFunc>>> =
         Mutex::new(UnsafeCell::new(None));
 }
@@ -34,8 +33,7 @@ type InitializeSecurityContextWFunc = unsafe extern "system" fn(
     ptsexpiry: *mut i64,
 ) -> HRESULT;
 
-pub fn install(auto_enable: bool) {
-    eventlog::init("Pixeval.Bypass", log::Level::Trace).ok();
+pub fn install() {
     let mut interceptr = Interceptor::obtain(&GUM);
     interceptr.begin_transaction();
     unsafe {
@@ -48,8 +46,6 @@ pub fn install(auto_enable: bool) {
         ));
     }
     interceptr.end_transaction();
-    *ENABLED.lock().unwrap().get_mut() = auto_enable;
-    log::info!("ssl hook installed");
 }
 
 pub fn remove() {
@@ -76,25 +72,23 @@ unsafe extern "system" fn detour(
     ptsexpiry: *mut i64,
 ) -> HRESULT {
     unsafe {
-        if *ENABLED.lock().unwrap().get() {
-            let target_name = psztargetname.to_string().unwrap();
-            if target_name.ends_with("pixiv.net") {
-                let psztargetname = PCWSTR(null());
-                return ORIGINAL.lock().unwrap().get_mut().unwrap()(
-                    phcredential,
-                    phcontext,
-                    psztargetname,
-                    fcontextreq,
-                    reserved1,
-                    targetdatarep,
-                    pinput,
-                    reserved2,
-                    phnewcontext,
-                    poutput,
-                    pfcontextattr,
-                    ptsexpiry,
-                );
-            }
+        let target_name = psztargetname.to_string().unwrap();
+        if target_name.ends_with("pixiv.net") {
+            let psztargetname = PCWSTR(null());
+            return ORIGINAL.lock().unwrap().get_mut().unwrap()(
+                phcredential,
+                phcontext,
+                psztargetname,
+                fcontextreq,
+                reserved1,
+                targetdatarep,
+                pinput,
+                reserved2,
+                phnewcontext,
+                poutput,
+                pfcontextattr,
+                ptsexpiry,
+            );
         }
     }
     return ORIGINAL.lock().unwrap().get_mut().unwrap()(
