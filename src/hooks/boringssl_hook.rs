@@ -8,7 +8,7 @@ use std::{
     ptr::null,
     sync::Mutex,
 };
-use windows::{core::PCSTR, Win32::Networking::WinSock::ADDRINFO_DNS_SERVER_0};
+use windows::core::PCSTR;
 
 lazy_static! {
     static ref GUM: Gum = unsafe { Gum::obtain() };

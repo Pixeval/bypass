@@ -122,9 +122,13 @@ dependencies = [
  "hickory-proto",
  "lazy_static",
  "libc",
+ "libloading",
  "log",
  "reqwest",
  "rumqttc",
+ "serde",
+ "serde_json",
+ "test-cdylib",
  "tokio",
  "which 6.0.1",
  "windows",
@@ -136,6 +140,18 @@ name = "bytes"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "514de17de45fdb8dc022b1a7975556c53c86f9f0aa5f534b98977b171857c2c9"
+
+[[package]]
+name = "cargo_metadata"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46e3374c604fb39d1a2f35ed5e4a4e30e60d01fab49446e08f1b3e9a90aef202"
+dependencies = [
+ "semver",
+ "serde",
+ "serde_derive",
+ "serde_json",
+]
 
 [[package]]
 name = "cc"
@@ -768,6 +784,9 @@ name = "log"
 version = "0.4.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90ed8c1e510134f979dbc4f070f87d4313098b704861a105fe34231c70a3901c"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "lzma-sys"
@@ -1345,19 +1364,35 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde"
-version = "1.0.200"
+name = "semver"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddc6f9cc94d67c0e21aaf7eda3a010fd3af78ebf6e096aa6e2e13c79749cce4f"
+checksum = "1d7eb9ef2c18661902cc47e535f9bc51b78acd254da71d375c2f6720d9a40403"
+dependencies = [
+ "semver-parser",
+ "serde",
+]
+
+[[package]]
+name = "semver-parser"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
+
+[[package]]
+name = "serde"
+version = "1.0.203"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7253ab4de971e72fb7be983802300c30b5a7f0c2e56fab8abfc6a214307c0094"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.200"
+version = "1.0.203"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "856f046b9400cee3c8c94ed572ecdb752444c24528c035cd35882aad6f492bcb"
+checksum = "500cbc0ebeb6f46627f50f3f5811ccf6bf00643be300b4c3eabc0ef55dc5b5ba"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1366,9 +1401,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.116"
+version = "1.0.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e17db7126d17feb94eb3fad46bf1a96b034e8aacbc2e775fe81505f8b0b2813"
+checksum = "455182ea6142b14f93f4bc5320a2b31c1f266b66a4a5c858b013302a5d8cbfc3"
 dependencies = [
  "itoa",
  "ryu",
@@ -1495,6 +1530,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "test-cdylib"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8f41b1f729f5ff5177beab62e5a9251e318df8386e260ab3c944cff502ee78d"
+dependencies = [
+ "cargo_metadata",
+ "serde",
+ "serde_json",
+ "toml",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1589,6 +1636,15 @@ dependencies = [
  "futures-sink",
  "pin-project-lite",
  "tokio",
+]
+
+[[package]]
+name = "toml"
+version = "0.5.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4f7f0dd8d50a853a531c426359045b1998f04219d88799810762cd4ad314234"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

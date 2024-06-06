@@ -8,6 +8,8 @@ use windows_sys::Win32::{
     System::Threading::{PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW},
 };
 
+use crate::injector::inject;
+
 lazy_static! {
     static ref GUM: Gum = unsafe { Gum::obtain() };
     pub static ref ENABLED: Mutex<UnsafeCell<bool>> = Mutex::new(UnsafeCell::new(false));
@@ -15,7 +17,6 @@ lazy_static! {
         Mutex::new(UnsafeCell::new(None));
 }
 
-static mut INJECTED_DLL_PATH: Option<String> = None;
 static mut TARGET: Option<NativePointer> = None;
 
 type CreateProcessWFunc = unsafe extern "system" fn(
@@ -55,12 +56,8 @@ unsafe extern "system" fn detour(
         lpstartupinfo,
         lpprocessinformation,
     );
-    let command_line = lpcommandline.to_string().unwrap();
-    // log::info!("{}", command_line);
-    if command_line.contains("--utility-sub-type=network.mojom.NetworkService") {
-        let pid = lpprocessinformation.as_ref().unwrap().dwProcessId;
-        let path = INJECTED_DLL_PATH.as_ref().unwrap();
-    }
+    
+    inject(lpprocessinformation.as_ref().unwrap().dwProcessId);
     return result;
 }
 

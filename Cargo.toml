@@ -3,7 +3,7 @@ name = "bypass"
 edition = "2021"
 
 [lib]
-crate-type = ["lib"]
+crate-type = ["cdylib"]
 
 
 [profile.release]
@@ -12,17 +12,24 @@ panic = "abort"
 strip = true
 lto = true
 
-[dependencies.windows-sys]
-version = "0.52.0"
-features = [
-    "Win32_Foundation",
-    "Win32_System_IO",
-    "Win32_Security_Authentication_Identity",
-    "Win32_Security_Credentials",
-    "Win32_System_SystemServices",
-    "Win32_System_LibraryLoader",
-    "Win32_Networking_WinSock",
-]
+[dependencies]
+anyhow = "1.0.86"
+frida = { version = "0.13.6", features = ["auto-download"] }
+frida-gum = { version = "0.13.6", features = ["auto-download"] }
+futures = "0.3.30"
+hickory-proto = "0.24.1"
+lazy_static = "1.4.0"
+libc = "0.2.155"
+log = { version = "0.4.21", features = ["serde", "std"] }
+rumqttc = "0.24.0"
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = "1.0.117"
+tokio = { version = "1.37.0", features = [
+    "sync",
+    "net",
+    "macros",
+    "rt-multi-thread",
+] }
 
 [dependencies.windows]
 version = "0.56.0"
@@ -36,24 +43,21 @@ features = [
     "Win32_Networking_WinSock",
 ]
 
-[dependencies]
-lazy_static = "1.4.0"
-tokio = { version = "1.37.0", features = [
-    "sync",
-    "net",
-    "macros",
-    "rt-multi-thread",
-] }
-hickory-proto = "0.24.1"
-frida-gum = { version = "0.13.6", features = ["auto-download"] }
-frida = { version = "0.13.6", features = ["auto-download"] }
-futures = "0.3.30"
-anyhow = "1.0.86"
-rumqttc = "0.24.0"
-log = "0.4.21"
-libc = "0.2.155"
+[dependencies.windows-sys]
+version = "0.52.0"
+features = [
+    "Win32_Foundation",
+    "Win32_System_IO",
+    "Win32_Security_Authentication_Identity",
+    "Win32_Security_Credentials",
+    "Win32_System_SystemServices",
+    "Win32_System_LibraryLoader",
+    "Win32_Networking_WinSock",
+]
 
 
 [dev-dependencies]
+libloading = "0.8.3"
 reqwest = { version = "0.12.2", features = ["native-tls"] }
+test-cdylib = "1.1.0"
 which = "6.0.1"
