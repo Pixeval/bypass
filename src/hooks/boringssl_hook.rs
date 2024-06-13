@@ -1,3 +1,4 @@
+use anyhow::Ok;
 use frida_gum::{interceptor::Interceptor, Gum, MatchPattern, MemoryRange, Module, NativePointer};
 use lazy_static::lazy_static;
 use std::{
@@ -11,7 +12,6 @@ use std::{
 use windows::core::PCSTR;
 
 lazy_static! {
-    static ref GUM: Gum = unsafe { Gum::obtain() };
     pub static ref ENABLED: Mutex<UnsafeCell<bool>> = Mutex::new(UnsafeCell::new(false));
     static ref ORIGINAL: Mutex<UnsafeCell<Option<TargetFunc>>> = Mutex::new(UnsafeCell::new(None));
 }
@@ -73,11 +73,13 @@ fn find_target() -> Option<NativePointer> {
     }
 }
 
-pub fn install() {
-    let mut interceptr = Interceptor::obtain(&GUM);
-    if let Some(target) = find_target() {
-        interceptr.begin_transaction();
-        unsafe {
+pub async fn install() -> anyhow::Result<()> {
+    unsafe {
+        let gum = Gum::obtain();
+        let mut interceptr = Interceptor::obtain(&gum);
+        if let Some(target) = find_target() {
+            interceptr.begin_transaction();
+
             TARGET = Some(target);
             *ORIGINAL.lock().unwrap().get_mut() = Some(transmute(
                 interceptr
@@ -85,16 +87,8 @@ pub fn install() {
                     .unwrap()
                     .0,
             ));
+            interceptr.end_transaction();
         }
-        interceptr.end_transaction();
     }
-}
-
-pub fn remove() {
-    let mut interceptor = Interceptor::obtain(&GUM);
-    interceptor.begin_transaction();
-    unsafe {
-        interceptor.revert(TARGET.unwrap());
-    }
-    interceptor.end_transaction();
+    anyhow::Ok(())
 }

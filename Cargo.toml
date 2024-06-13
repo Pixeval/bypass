@@ -3,7 +3,7 @@ name = "bypass"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["lib", "cdylib"]
 
 
 [profile.release]
@@ -12,27 +12,25 @@ panic = "abort"
 strip = true
 lto = true
 
+[features]
+log = []
+
 [dependencies]
-anyhow = "1.0.86"
-frida = { version = "0.13.6", features = ["auto-download"] }
+anyhow = { version = "1.0.86" }
+axum = "0.7.5"
+dll-syringe = "0.15.2"
+flume = "0.11.0"
 frida-gum = { version = "0.13.6", features = ["auto-download"] }
-futures = "0.3.30"
 hickory-proto = "0.24.1"
 lazy_static = "1.4.0"
-libc = "0.2.155"
-log = { version = "0.4.21", features = ["serde", "std"] }
-rumqttc = "0.24.0"
+log = { version = "0.4.21", features = ["std", "serde"] }
+reqwest = { version = "0.12.4", features = ["json"] }
 serde = { version = "1.0.203", features = ["derive"] }
-serde_json = "1.0.117"
-tokio = { version = "1.37.0", features = [
-    "sync",
-    "net",
-    "macros",
-    "rt-multi-thread",
-] }
+tokio = { version = "1.38.0", features = ["net", "rt", "rt-multi-thread"] }
+
 
 [dependencies.windows]
-version = "0.56.0"
+version = "0.57.0"
 features = [
     "Win32_Foundation",
     "Win32_System_IO",
@@ -59,5 +57,9 @@ features = [
 [dev-dependencies]
 libloading = "0.8.3"
 reqwest = { version = "0.12.2", features = ["native-tls"] }
-test-cdylib = "1.1.0"
+test-cdylib = { git = "https://github.com/Summpot/test-cdylib.git" }
+tokio = { version = "1.38.0", features = ["macros"] }
 which = "6.0.1"
+bypass = { path = ".", features = ["log"] }
+env_logger = "0.11.3"
+test-log = "0.2.16"

@@ -1,10 +1,32 @@
-use frida::Inject;
+use anyhow::Ok;
+use dll_syringe::{
+    process::{BorrowedProcess, BorrowedProcessModule, OwnedProcess, ProcessModule},
+    Syringe,
+};
 use frida_gum::Module;
 
-use crate::LogServerInfo;
+pub struct Injection<'a> {
+    syringe_ptr: *mut Syringe,
+    injected_module: ProcessModule<BorrowedProcess<'a>>,
+}
 
-struct Injector {
-    log_server_info: Option<LogServerInfo>,
+impl<'a> Injection<'a> {
+    #[allow(dead_code)]
+    pub fn eject(&mut self) -> anyhow::Result<()> {
+        unsafe {
+            self.syringe_ptr
+                .as_ref()
+                .unwrap()
+                .eject(self.injected_module)?;
+        }
+        anyhow::Ok(())
+    }
+}
+
+impl<'a> Drop for Injection<'a> {
+    fn drop(&mut self) {
+        unsafe { drop(Box::from_raw(self.syringe_ptr)) }
+    }
 }
 
 fn get_current_module_path() -> String {
@@ -18,10 +40,15 @@ fn get_current_module_path() -> String {
     module.path
 }
 
-impl Injector {
-    pub fn inject(&self, pid: u32) {
-        let inject_payload_path = get_current_module_path();
-        let mut injector = frida::Injector::new();
-        injector.inject_library_file_sync(pid, inject_payload_path, "entrypoint", "localhost");
-    }
+pub unsafe fn inject<'a>(pid: u32) -> anyhow::Result<Injection<'a>> {
+    let process = OwnedProcess::from_pid(pid)?;
+    let syringe = Syringe::for_process(process);
+    let payload_path = get_current_module_path();
+    let syringe_ptr = Box::leak(Box::new(syringe)) as *mut Syringe;
+    let injected_module = syringe_ptr.as_ref().unwrap().inject(payload_path)?;
+    let injection = Injection {
+        syringe_ptr,
+        injected_module,
+    };
+    Ok(injection)
 }

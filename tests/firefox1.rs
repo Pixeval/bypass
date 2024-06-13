@@ -7,7 +7,7 @@ use std::{
 };
 
 #[tokio::test]
-async fn firefox1() -> Result<(), Box<dyn std::error::Error>> {
+async fn firefox1() -> anyhow::Result<()> {
     let chrome_paths =
         which::which_in_global("firefox.exe", Some(r"C:\Users\Summpot\Desktop\chrome-win"))
             .expect("You should install chrome first.");
@@ -24,5 +24,5 @@ async fn firefox1() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap()
         .join("bypass.dll");
     let path = fs::canonicalize(path)?;
-    Ok(())
+    anyhow::Ok(())
 }

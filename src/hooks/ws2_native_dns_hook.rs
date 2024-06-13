@@ -1,3 +1,4 @@
+use anyhow::Ok;
 use frida_gum::interceptor::Interceptor;
 use frida_gum::{Gum, Module, NativePointer};
 
@@ -16,7 +17,6 @@ use windows::Win32::Networking::WinSock::{
 use windows::Win32::System::IO::OVERLAPPED;
 
 lazy_static! {
-    static ref GUM: Gum = unsafe { Gum::obtain() };
     static ref ORIGINAL1: Mutex<UnsafeCell<Option<GetAddrInfoAFunc>>> =
         Mutex::new(UnsafeCell::new(None));
     static ref ORIGINAL2: Mutex<UnsafeCell<Option<GetAddrInfoWFunc>>> =
@@ -151,10 +151,11 @@ unsafe extern "system" fn detour4(
     );
 }
 
-pub fn install() {
-    let mut interceptor = Interceptor::obtain(&GUM);
-    interceptor.begin_transaction();
+pub async fn install() -> anyhow::Result<()> {
     unsafe {
+        let gum = Gum::obtain();
+        let mut interceptor = Interceptor::obtain(&gum);
+        interceptor.begin_transaction();
         TARGET1 = Module::find_export_by_name(Some("ws2_32"), "getaddrinfo");
         TARGET2 = Module::find_export_by_name(Some("ws2_32"), "GetAddrInfoW");
         TARGET3 = Module::find_export_by_name(Some("ws2_32"), "GetAddrInfoExA");
@@ -171,15 +172,7 @@ pub fn install() {
                 .unwrap()
                 .0,
         ));
+        interceptor.end_transaction();
     }
-    interceptor.end_transaction();
-}
-
-pub fn remove() {
-    let mut interceptor = Interceptor::obtain(&GUM);
-    interceptor.begin_transaction();
-    unsafe {
-        interceptor.revert(TARGET1.unwrap());
-    }
-    interceptor.end_transaction();
+    anyhow::Ok(())
 }

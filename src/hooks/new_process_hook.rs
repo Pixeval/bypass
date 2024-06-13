@@ -1,3 +1,4 @@
+use anyhow::Ok;
 use frida_gum::{interceptor::Interceptor, Gum, Module, NativePointer};
 use lazy_static::lazy_static;
 use std::{cell::UnsafeCell, ffi::c_void, mem::transmute, sync::Mutex};
@@ -8,11 +9,9 @@ use windows_sys::Win32::{
     System::Threading::{PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW},
 };
 
-use crate::injector::inject;
+use crate::injector;
 
 lazy_static! {
-    static ref GUM: Gum = unsafe { Gum::obtain() };
-    pub static ref ENABLED: Mutex<UnsafeCell<bool>> = Mutex::new(UnsafeCell::new(false));
     static ref ORIGINAL: Mutex<UnsafeCell<Option<CreateProcessWFunc>>> =
         Mutex::new(UnsafeCell::new(None));
 }
@@ -56,15 +55,15 @@ unsafe extern "system" fn detour(
         lpstartupinfo,
         lpprocessinformation,
     );
-    
-    inject(lpprocessinformation.as_ref().unwrap().dwProcessId);
-    return result;
+    let injection = injector::inject(lpprocessinformation.as_ref().unwrap().dwProcessId).unwrap();
+    result
 }
 
-pub fn install() {
-    let mut interceptr = Interceptor::obtain(&GUM);
-    interceptr.begin_transaction();
+pub async fn install() -> anyhow::Result<()> {
     unsafe {
+        let gum = Gum::obtain();
+        let mut interceptr = Interceptor::obtain(&gum);
+        interceptr.begin_transaction();
         TARGET = Module::find_export_by_name(Some("kernel32"), "CreateProcessW");
         *ORIGINAL.lock().unwrap().get_mut() = Some(transmute(
             interceptr
@@ -72,15 +71,7 @@ pub fn install() {
                 .unwrap()
                 .0,
         ));
+        interceptr.end_transaction();
     }
-    interceptr.end_transaction();
-}
-
-pub fn remove() {
-    let mut interceptor = Interceptor::obtain(&GUM);
-    interceptor.begin_transaction();
-    unsafe {
-        interceptor.revert(TARGET.unwrap());
-    }
-    interceptor.end_transaction();
+    anyhow::Ok(())
 }

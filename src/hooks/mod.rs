@@ -1,13 +1,20 @@
-mod new_process_hook;
 mod boringssl_hook;
-mod schannel_ssl_hook;
+mod new_process_hook;
+mod schannel_hook;
 mod ws2_native_dns_hook;
 mod ws2_socket_dns_hook;
 
-pub fn install_all_hooks() {
-    new_process_hook::install();
-    boringssl_hook::install();
-    schannel_ssl_hook::install();
-    ws2_native_dns_hook::install();
-    ws2_socket_dns_hook::install();
+pub async fn install_new_process_hook(
+    #[cfg(feature = "log")] log_server_url: String,
+) -> anyhow::Result<()> {
+    new_process_hook::install().await?;
+    anyhow::Ok(())
+}
+
+pub async fn install_all_hooks() -> anyhow::Result<()> {
+    boringssl_hook::install().await?;
+    schannel_hook::install().await?;
+    ws2_native_dns_hook::install().await?;
+    ws2_socket_dns_hook::install().await?;
+    anyhow::Ok(())
 }

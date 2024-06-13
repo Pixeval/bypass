@@ -1,3 +1,4 @@
+use flume::{Receiver, Sender};
 use frida_gum::interceptor::Interceptor;
 use frida_gum::{Gum, Module, NativePointer};
 use hickory_proto::op::{Message, MessageType};
@@ -9,15 +10,12 @@ use std::cell::UnsafeCell;
 use std::ffi::c_void;
 use std::mem::transmute;
 use std::sync::Mutex;
-use tokio::runtime::Runtime;
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use windows_sys::Win32::Networking::WinSock::{
     WSASetEvent, LPWSAOVERLAPPED_COMPLETION_ROUTINE, SOCKADDR, SOCKET, WSABUF,
 };
 use windows_sys::Win32::System::IO::OVERLAPPED;
 
 lazy_static! {
-    static ref GUM: Gum = unsafe { Gum::obtain() };
     static ref ORIGINAL1: Mutex<UnsafeCell<Option<WSASendToFunc>>> =
         Mutex::new(UnsafeCell::new(None));
     static ref ORIGINAL2: Mutex<UnsafeCell<Option<WSARecvFromFunc>>> =
@@ -29,8 +27,8 @@ struct Payload {
     addr: SOCKADDR,
     addr_len: i32,
 }
-static mut TX: Option<UnboundedSender<Payload>> = None;
-static mut RX: Option<UnboundedReceiver<Payload>> = None;
+static mut TX: Option<Sender<Payload>> = None;
+static mut RX: Option<Receiver<Payload>> = None;
 static mut TARGET1: Option<NativePointer> = None;
 static mut TARGET2: Option<NativePointer> = None;
 
@@ -150,7 +148,7 @@ unsafe extern "system" fn detour2(
     unsafe {
         let receiver = RX.as_mut().unwrap();
         if !receiver.is_empty() {
-            let payload = receiver.blocking_recv().unwrap();
+            let payload = receiver.recv().unwrap();
             let src = payload.message.to_bytes().unwrap();
             let buffer = *lpbuffers;
             let dest = std::slice::from_raw_parts_mut(buffer.buf, buffer.len as usize);
@@ -175,10 +173,11 @@ unsafe extern "system" fn detour2(
     }
 }
 
-pub fn install() {
-    let mut interceptor = Interceptor::obtain(&GUM);
-    interceptor.begin_transaction();
+pub async fn install() -> anyhow::Result<()> {
     unsafe {
+        let gum = Gum::obtain();
+        let mut interceptor = Interceptor::obtain(&gum);
+        interceptor.begin_transaction();
         TARGET1 = Module::find_export_by_name(Some("ws2_32"), "WSASendTo");
         TARGET2 = Module::find_export_by_name(Some("ws2_32"), "WSARecvFrom");
         *ORIGINAL1.lock().unwrap().get_mut() = Some(transmute(
@@ -193,21 +192,10 @@ pub fn install() {
                 .unwrap()
                 .0,
         ));
-    }
-    interceptor.end_transaction();
-    let (tx, rx) = mpsc::unbounded_channel();
-    unsafe {
+        interceptor.end_transaction();
+        let (tx, rx) = flume::unbounded();
         TX = Some(tx);
         RX = Some(rx);
     }
-}
-
-pub fn remove() {
-    let mut interceptor = Interceptor::obtain(&GUM);
-    interceptor.begin_transaction();
-    unsafe {
-        interceptor.revert(TARGET1.unwrap());
-        interceptor.revert(TARGET2.unwrap());
-    }
-    interceptor.end_transaction();
+    anyhow::Ok(())
 }
