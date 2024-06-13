@@ -19,11 +19,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install .NET Sdk
-        uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-
       - uses: actions/cache@v4
         with:
           path: |
@@ -44,12 +39,3 @@ jobs:
 
       - name: Build
         run: cargo build -r
-
-      - name: Pack
-        run: dotnet pack ./dotnet/Bypass.csproj
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Artifacts
-          path: "dotnet/nupkgs/*.nupkg"
