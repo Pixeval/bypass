@@ -1,4 +1,3 @@
-use anyhow::Ok;
 use frida_gum::{interceptor::Interceptor, Gum, MatchPattern, MemoryRange, Module, NativePointer};
 use lazy_static::lazy_static;
 use std::{
@@ -8,10 +7,14 @@ use std::{
     ops::{Add, Sub},
     ptr::null,
     sync::Mutex,
+    time::{Duration, Instant},
 };
 use windows::core::PCSTR;
 
+use super::HookError;
+
 lazy_static! {
+    static ref GUM: Gum = unsafe { Gum::obtain() };
     pub static ref ENABLED: Mutex<UnsafeCell<bool>> = Mutex::new(UnsafeCell::new(false));
     static ref ORIGINAL: Mutex<UnsafeCell<Option<TargetFunc>>> = Mutex::new(UnsafeCell::new(None));
 }
@@ -30,14 +33,19 @@ unsafe extern "C" fn detour(s: *mut c_void, name: PCSTR) -> i32 {
     return ORIGINAL.lock().unwrap().get_mut().unwrap()(s, name);
 }
 
-fn find_target() -> Option<NativePointer> {
+fn find_target() -> Result<NativePointer, HookError> {
+    let end_time = Instant::now().checked_add(Duration::from_secs(1)).unwrap();
     let chrome_main = loop {
-        let chrome_main = Module::find_export_by_name(None, "ChromeMain");
-        match chrome_main {
-            Some(address) => break address,
-            None => continue,
+        if let Some(address) = Module::find_export_by_name(None, "ChromeMain") {
+            break Some(address);
+        } else {
+            if Instant::now() > end_time {
+                break None;
+            }
+            std::thread::sleep(Duration::from_millis(100));
         }
-    };
+    }
+    .ok_or(HookError::ModuleNotFound())?;
     let module = Module::enumerate_modules()
         .into_iter()
         .filter(|m| {
@@ -54,7 +62,7 @@ fn find_target() -> Option<NativePointer> {
         "C7 44 24 20 ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? 31 F6 B9 10 00 00 00 31 D2 41 B8 D5 00 00 00",
     ).unwrap());
     if result.is_empty() {
-        return None;
+        return Err(HookError::TargetNotFound);
     }
     let address = result[0].address;
     let memory_range = MemoryRange::new(NativePointer(address.sub(200) as *mut c_void), 200);
@@ -66,29 +74,23 @@ fn find_target() -> Option<NativePointer> {
         (Some(address), None) => Some(address.address),
         (Some(address1), Some(address2)) => Some(std::cmp::max(address1.address, address2.address)),
     };
-    if let Some(address) = address {
-        Some(NativePointer(address as *mut c_void))
-    } else {
-        None
-    }
+    address
+        .map(|a| NativePointer(a as *mut c_void))
+        .ok_or(HookError::TargetNotFound)
 }
 
-pub async fn install() -> anyhow::Result<()> {
+pub fn install() -> Result<(), HookError> {
     unsafe {
-        let gum = Gum::obtain();
-        let mut interceptr = Interceptor::obtain(&gum);
-        if let Some(target) = find_target() {
-            interceptr.begin_transaction();
-
-            TARGET = Some(target);
-            *ORIGINAL.lock().unwrap().get_mut() = Some(transmute(
-                interceptr
-                    .replace_fast(TARGET.unwrap(), NativePointer(detour as *mut c_void))
-                    .unwrap()
-                    .0,
-            ));
-            interceptr.end_transaction();
-        }
+        TARGET = find_target().map(Some)?;
+        let mut interceptr = Interceptor::obtain(&GUM);
+        interceptr.begin_transaction();
+        *ORIGINAL.lock().unwrap().get_mut() = Some(transmute(
+            interceptr
+                .replace_fast(TARGET.unwrap(), NativePointer(detour as *mut c_void))
+                .unwrap()
+                .0,
+        ));
+        interceptr.end_transaction();
+        Ok(())
     }
-    anyhow::Ok(())
 }

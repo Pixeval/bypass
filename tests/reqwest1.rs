@@ -1,24 +1,17 @@
 use std::ffi::CString;
 
-use anyhow::Ok;
 use log::info;
 use reqwest::{ClientBuilder, StatusCode};
 
-#[test_log::test(tokio::test)]
+#[tokio::test]
 async fn reqwest1() -> anyhow::Result<()> {
-    let logger_url = bypass::log::setup_log_server_async().await?;
-    info!("{}",logger_url);
+    let bypass_path = test_cdylib::build_current_project();
     unsafe {
-        let bypass_path = test_cdylib::build_current_project();
-        info!("{:?}", bypass_path);
-        let bypass_lib = libloading::Library::new(bypass_path)?;
-        info!("{:?}", bypass_lib);
-        let bypass_run: libloading::Symbol<unsafe extern "C" fn(*const u8)> =
-            bypass_lib.get(b"run_with_log_server")?;
-        info!("{:?}", bypass_run);
-        bypass_run(CString::new(logger_url).unwrap().into_raw() as *const u8);
+        bypass::inject_and_run(
+            libc::getpid() as u32,
+            Some(bypass_path.to_str().unwrap().to_owned()),
+        );
     }
-
     let client = ClientBuilder::new().no_proxy().build()?;
 
     let url = "https://www.pixiv.net/artworks/117400067";

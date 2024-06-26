@@ -15,7 +15,10 @@ use windows_sys::Win32::Networking::WinSock::{
 };
 use windows_sys::Win32::System::IO::OVERLAPPED;
 
+use super::HookError;
+
 lazy_static! {
+    static ref GUM: Gum = unsafe { Gum::obtain() };
     static ref ORIGINAL1: Mutex<UnsafeCell<Option<WSASendToFunc>>> =
         Mutex::new(UnsafeCell::new(None));
     static ref ORIGINAL2: Mutex<UnsafeCell<Option<WSARecvFromFunc>>> =
@@ -173,13 +176,16 @@ unsafe extern "system" fn detour2(
     }
 }
 
-pub async fn install() -> anyhow::Result<()> {
+pub fn install() -> Result<(), HookError> {
     unsafe {
-        let gum = Gum::obtain();
-        let mut interceptor = Interceptor::obtain(&gum);
+        let mut interceptor = Interceptor::obtain(&GUM);
         interceptor.begin_transaction();
-        TARGET1 = Module::find_export_by_name(Some("ws2_32"), "WSASendTo");
-        TARGET2 = Module::find_export_by_name(Some("ws2_32"), "WSARecvFrom");
+        TARGET1 = Module::find_export_by_name(Some("ws2_32"), "WSASendTo")
+            .ok_or(HookError::TargetNotFound)
+            .map(Some)?;
+        TARGET2 = Module::find_export_by_name(Some("ws2_32"), "WSARecvFrom")
+            .ok_or(HookError::TargetNotFound)
+            .map(Some)?;
         *ORIGINAL1.lock().unwrap().get_mut() = Some(transmute(
             interceptor
                 .replace_fast(TARGET1.unwrap(), NativePointer(detour1 as *mut c_void))
@@ -196,6 +202,6 @@ pub async fn install() -> anyhow::Result<()> {
         let (tx, rx) = flume::unbounded();
         TX = Some(tx);
         RX = Some(rx);
+        Ok(())
     }
-    anyhow::Ok(())
 }

@@ -1,4 +1,3 @@
-use anyhow::Ok;
 use frida_gum::interceptor::Interceptor;
 use frida_gum::{Gum, Module, NativePointer};
 
@@ -16,7 +15,10 @@ use windows::Win32::Networking::WinSock::{
 };
 use windows::Win32::System::IO::OVERLAPPED;
 
+use super::HookError;
+
 lazy_static! {
+    static ref GUM: Gum = unsafe { Gum::obtain() };
     static ref ORIGINAL1: Mutex<UnsafeCell<Option<GetAddrInfoAFunc>>> =
         Mutex::new(UnsafeCell::new(None));
     static ref ORIGINAL2: Mutex<UnsafeCell<Option<GetAddrInfoWFunc>>> =
@@ -151,15 +153,22 @@ unsafe extern "system" fn detour4(
     );
 }
 
-pub async fn install() -> anyhow::Result<()> {
+pub async fn install() -> Result<(), HookError> {
     unsafe {
-        let gum = Gum::obtain();
-        let mut interceptor = Interceptor::obtain(&gum);
+        let mut interceptor = Interceptor::obtain(&GUM);
         interceptor.begin_transaction();
-        TARGET1 = Module::find_export_by_name(Some("ws2_32"), "getaddrinfo");
-        TARGET2 = Module::find_export_by_name(Some("ws2_32"), "GetAddrInfoW");
-        TARGET3 = Module::find_export_by_name(Some("ws2_32"), "GetAddrInfoExA");
-        TARGET4 = Module::find_export_by_name(Some("ws2_32"), "GetAddrInfoExW");
+        TARGET1 = Module::find_export_by_name(Some("ws2_32"), "getaddrinfo")
+            .ok_or(HookError::TargetNotFound)
+            .map(Some)?;
+        TARGET2 = Module::find_export_by_name(Some("ws2_32"), "GetAddrInfoW")
+            .ok_or(HookError::TargetNotFound)
+            .map(Some)?;
+        TARGET3 = Module::find_export_by_name(Some("ws2_32"), "GetAddrInfoExA")
+            .ok_or(HookError::TargetNotFound)
+            .map(Some)?;
+        TARGET4 = Module::find_export_by_name(Some("ws2_32"), "GetAddrInfoExW")
+            .ok_or(HookError::TargetNotFound)
+            .map(Some)?;
         *ORIGINAL1.lock().unwrap().get_mut() = Some(transmute(
             interceptor
                 .replace_fast(TARGET1.unwrap(), NativePointer(detour1 as *mut c_void))
@@ -173,6 +182,6 @@ pub async fn install() -> anyhow::Result<()> {
                 .0,
         ));
         interceptor.end_transaction();
+        Ok(())
     }
-    anyhow::Ok(())
 }

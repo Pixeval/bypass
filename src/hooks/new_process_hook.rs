@@ -1,4 +1,3 @@
-use anyhow::Ok;
 use frida_gum::{interceptor::Interceptor, Gum, Module, NativePointer};
 use lazy_static::lazy_static;
 use std::{cell::UnsafeCell, ffi::c_void, mem::transmute, sync::Mutex};
@@ -9,9 +8,12 @@ use windows_sys::Win32::{
     System::Threading::{PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW},
 };
 
-use crate::injector;
+use crate::{inject_and_run, injector};
+
+use super::HookError;
 
 lazy_static! {
+    static ref GUM: Gum = unsafe { Gum::obtain() };
     static ref ORIGINAL: Mutex<UnsafeCell<Option<CreateProcessWFunc>>> =
         Mutex::new(UnsafeCell::new(None));
 }
@@ -55,16 +57,20 @@ unsafe extern "system" fn detour(
         lpstartupinfo,
         lpprocessinformation,
     );
-    let injection = injector::inject(lpprocessinformation.as_ref().unwrap().dwProcessId).unwrap();
+    if result != 0 {
+        //ensure process successfully created
+        inject_and_run(lpprocessinformation.as_ref().unwrap().dwProcessId, None).ok();
+    }
     result
 }
 
-pub async fn install() -> anyhow::Result<()> {
+pub fn install() -> Result<(), HookError> {
     unsafe {
-        let gum = Gum::obtain();
-        let mut interceptr = Interceptor::obtain(&gum);
+        let mut interceptr = Interceptor::obtain(&GUM);
         interceptr.begin_transaction();
-        TARGET = Module::find_export_by_name(Some("kernel32"), "CreateProcessW");
+        TARGET = Module::find_export_by_name(Some("kernel32"), "CreateProcessW")
+            .ok_or(HookError::TargetNotFound)
+            .map(Some)?;
         *ORIGINAL.lock().unwrap().get_mut() = Some(transmute(
             interceptr
                 .replace_fast(TARGET.unwrap(), NativePointer(detour as *mut c_void))
@@ -72,6 +78,7 @@ pub async fn install() -> anyhow::Result<()> {
                 .0,
         ));
         interceptr.end_transaction();
+        info!("new process hook installed");
+        Ok(())
     }
-    anyhow::Ok(())
 }

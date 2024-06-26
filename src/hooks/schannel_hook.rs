@@ -1,4 +1,3 @@
-use anyhow::Ok;
 use frida_gum::{interceptor::Interceptor, Gum, Module, NativePointer};
 use lazy_static::lazy_static;
 use std::{cell::UnsafeCell, ffi::c_void, mem::transmute, ptr::null, sync::Mutex};
@@ -11,7 +10,10 @@ use windows_sys::{
     },
 };
 
+use super::HookError;
+
 lazy_static! {
+    static ref GUM: Gum = unsafe { Gum::obtain() };
     static ref ORIGINAL: Mutex<UnsafeCell<Option<InitializeSecurityContextWFunc>>> =
         Mutex::new(UnsafeCell::new(None));
 }
@@ -83,12 +85,13 @@ unsafe extern "system" fn detour(
     );
 }
 
-pub async fn install() -> anyhow::Result<()> {
+pub fn install() -> Result<(), HookError> {
     unsafe {
-        let gum = Gum::obtain();
-        let mut interceptr = Interceptor::obtain(&gum);
+        let mut interceptr = Interceptor::obtain(&GUM);
         interceptr.begin_transaction();
-        TARGET = Module::find_export_by_name(Some("sspicli"), "InitializeSecurityContextW");
+        TARGET = Module::find_export_by_name(Some("sspicli"), "InitializeSecurityContextW")
+            .ok_or(HookError::TargetNotFound)
+            .map(Some)?;
         *ORIGINAL.lock().unwrap().get_mut() = Some(transmute(
             interceptr
                 .replace_fast(TARGET.unwrap(), NativePointer(detour as *mut c_void))
@@ -96,6 +99,6 @@ pub async fn install() -> anyhow::Result<()> {
                 .0,
         ));
         interceptr.end_transaction();
+        Ok(())
     }
-    anyhow::Ok(())
 }
